@@ -37,3 +37,17 @@ Financial PhraseBank, файл `Sentences_50Agree.txt` (формат `текст
 Результат на Financial PhraseBank: 4846 → 4836 строк (4 с конфликтом классов, 6 дубликатов, пустых и неизвестных классов 0).
 
 Ограничения: в исходном файле есть следы неверной кодировки (около 30 строк, например `+Ârbindelsen`, `-¦ s`, `+ó  x201a` вместо знака евро). Мы их не исправляем. Токены вида `company 's` остаются как есть: тексты уже разделены пробелами.
+
+## День 3. Baseline (`src/finnews/baseline.py`)
+
+Запуск: `python -m finnews.baseline`. Тесты: `pytest`. Настройки (`test_size`, `random_state`, `max_iter`, пути `metrics_path` и `model_path`) лежат в `configs/config.json`.
+
+Процесс: очищенные данные → деление на train и test (20%, `stratify` по классу, `random_state` 42) → `Pipeline` из TF-IDF и Logistic Regression (TF-IDF учится только на train, утечки нет) → метрики на test → сохранение в `reports/baseline_metrics.json` и `models/baseline.joblib` (модель не коммитится).
+
+Результат (train 3868, test 968): accuracy 0.770, macro F1 0.696. Правило «всегда neutral» даёт accuracy 0.594 и F1 0.248. По классам: negative P 0.84 / R 0.48 / F1 0.61, neutral 0.77 / 0.94 / 0.84, positive 0.76 / 0.55 / 0.64.
+
+Вывод: модель часто принимает negative (46 из 121) и positive (118 из 272) за neutral. Точка отсчёта для дня 4: macro F1 0.696.
+
+Проверка утечки (`experiments/leak_demo.py`): если учить TF-IDF на всех данных, в словарь попадают 1118 слов из test (8942 → 10060), но метрики почти не меняются (accuracy 0.768, F1 0.683). Всё равно учим только на train.
+
+Теория с графиками: `theory_*.py` (запуск из корня проекта), картинки в `reports/theory/`.
