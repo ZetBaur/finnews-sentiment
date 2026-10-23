@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from load_data import load_data
+from finnews.load_data import load_data
 
 os.makedirs("reports", exist_ok=True)
 

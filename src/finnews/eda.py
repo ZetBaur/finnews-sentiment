@@ -1,4 +1,4 @@
-from load_data import load_data
+from finnews.load_data import load_data
 
 df = load_data()
 
