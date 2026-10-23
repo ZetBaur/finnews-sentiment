@@ -1,0 +1,9 @@
+{
+  "data_path": "data/FinancialPhraseBank-v1.0/Sentences_50Agree.txt",
+  "min_text_length": 3,
+  "labels": {
+    "negative": 0,
+    "neutral": 1,
+    "positive": 2
+  }
+}
