@@ -10,5 +10,15 @@
   "random_state": 42,
   "metrics_path": "reports/baseline_metrics.json",
   "model_path": "models/baseline.joblib",
-  "max_iter": 1000
+  "max_iter": 1000,
+  "improve_metrics_path": "reports/improve_metrics.json",
+  "cv_folds": 5,
+  "experiments": {
+    "baseline": {"model": "logreg", "C": 1, "ngram_range": [1, 1]},
+    "ngrams_1_2": {"model": "logreg", "C": 1, "ngram_range": [1, 2]},
+    "logreg_C10": {"model": "logreg", "C": 10, "ngram_range": [1, 1]},
+    "logreg_C100": {"model": "logreg", "C": 100, "ngram_range": [1, 1]},
+    "svc_C0.5": {"model": "linearsvc", "C": 0.5, "ngram_range": [1, 1]},
+    "svc_C1": {"model": "linearsvc", "C": 1, "ngram_range": [1, 1]}
+  }
 }
