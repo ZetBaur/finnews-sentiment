@@ -1,12 +1,80 @@
 # Классификация тональности финансовых новостей
 
-Учебный проект: по короткой финансовой фразе определить тональность (positive / negative / neutral).
+Модель получает короткую финансовую фразу на английском и отвечает: `positive`, `negative` или `neutral`. Пример: «Operating profit rose to EUR 20 million» → `positive`.
+
+## Быстрый старт
+
+Нужен Python 3.12 или новее. Все команды выполняются из корня проекта.
+
+1. Окружение и пакеты:
+   ```
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -e ".[dev]"
+   ```
+2. Данные. Набор Financial PhraseBank (Malo et al.) не лежит в репозитории. Скачай его (на Hugging Face он называется `financial_phrasebank`) и положи файл `Sentences_50Agree.txt` в `data/FinancialPhraseBank-v1.0/`. Путь задан в `configs/config.json` (`data_path`).
+3. Обучение и сохранение модели: `python -m finnews.predict`. Появится `models/final.joblib`.
+4. Предсказание:
+   ```
+   python -m finnews.predict "Operating profit rose to EUR 20 million" "Sales decreased by 15%"
+   ```
+5. Демонстрация на готовых фразах: `python examples/demo.py`.
+6. Проверка проекта: `pytest` и `ruff check .`.
+
+Как пользоваться из кода: `from finnews.predict import predict`; вход — список строк, выход — список словарей `{"text": ..., "label": ...}` в том же порядке.
 
 ## Данные
 
+Financial PhraseBank, версия `Sentences_50Agree` (4846 фраз, разметчики согласны минимум на 50%). Классы: neutral 59,4%, positive 28,1%, negative 12,5%. После очистки (пустые, конфликтные и повторяющиеся тексты убраны) остаётся 4836 строк. Делим на train 3868 и test 968 (20%, с сохранением долей классов, `random_state` 42).
+
+## Результаты
+
+Главная метрика — macro F1 (среднее F1 по трём классам): классы несбалансированы, и accuracy обманывает.
+
+| Модель | accuracy (test) | macro F1 (test) |
+|---|---|---|
+| Правило «всегда neutral» | 0.594 | 0.248 |
+| Baseline: TF-IDF + Logistic Regression | 0.770 | 0.696 |
+| Лучший вариант: TF-IDF + LinearSVC (C=1) | 0.768 | 0.709 |
+
+Лучший вариант выбран по кросс-валидации на train (CV F1 0.709 против 0.652 у baseline, разброс ±0.017), а не по test. Разница на test между baseline и лучшим вариантом (0.696 и 0.709) внутри случайного разброса, поэтому честный вывод такой: настройка `C` и замена модели дала заметный прирост на CV, а на test он небольшой.
+
+## Где модель ошибается
+
+На test 225 ошибок из 968 (23,2%). Самые частые: positive → neutral (92) и neutral → positive (52). Если в фразе нет слов-подсказок, модель выбирает самый частый класс neutral. Подробный разбор: раздел «День 5» ниже и `reports/errors.csv`.
+
+## Ограничения
+
+- Модель смотрит на набор слов, а не на смысл и порядок: если перемешать слова во фразах test, метрики не меняются (проверено, `experiments/shuffle_words.py`).
+- Не понимает сравнения и направление изменения: «loss after taxes … compared to a loss of 2.6 mn» (убыток сократился) считает negative из-за слова «loss».
+- Часто принимает positive и negative за neutral (recall negative 0.48, positive 0.55 у baseline).
+- Только английский и только финансовые новости. Слова, которых не было в обучении, игнорируются.
+- Часть разметки спорная (версия `50Agree`), потолок качества ниже 100% даже у хорошей модели.
+- Всё измерено на одном делении train/test (968 фраз): разницу меньше ±0.02 считать улучшением нельзя.
+- Изменили очистку текста — переобучите модель (без `clean_text` метрики падают, проверено в `experiments/skip_clean.py`).
+- Дальше: модель, которая понимает контекст (трансформеры, следующее ДЗ).
+
+## Структура проекта
+
+```
+configs/config.json     все настройки (пути, test_size, random_state, варианты моделей)
+src/finnews/            код: load_data, preprocess, baseline, improve, errors, predict, log, config
+tests/                  pytest-тесты
+examples/demo.py        пример предсказаний
+experiments/            проверочные эксперименты («что будет, если сломать»)
+theory/                 учебные скрипты с графиками (картинки в reports/theory/)
+reports/                метрики, ошибки, графики
+models/                 сохранённые модели (не в git)
+data/                   данные (не в git)
+```
+
+## История работы по дням
+
+### Данные
+
 Financial PhraseBank, файл `Sentences_50Agree.txt` (формат `текст@класс`, кодировка latin-1). Загрузка: `load_data.py`.
 
-## День 1. Первичный анализ (`eda.py`)
+### День 1. Первичный анализ (`eda.py`)
 
 Результаты запуска:
 
@@ -26,7 +94,7 @@ Financial PhraseBank, файл `Sentences_50Agree.txt` (формат `текст
 
 Решение: 8 дубликатов удалить на этапе очистки (день 2), чтобы одна фраза не попала и в обучение, и в тест. Не проверено: совпадают ли классы у дубликатов; графики не построены.
 
-## День 2. Очистка и подготовка (`src/finnews/preprocess.py`)
+### День 2. Очистка и подготовка (`src/finnews/preprocess.py`)
 
 Запуск: `python -m finnews.preprocess` (пример «до / после» и сводка в логе). Тесты: `pytest`. Настройки (путь к данным, минимальная длина текста, соответствие классов числам) лежат в `configs/config.json`.
 
@@ -38,7 +106,7 @@ Financial PhraseBank, файл `Sentences_50Agree.txt` (формат `текст
 
 Ограничения: в исходном файле есть следы неверной кодировки (около 30 строк, например `+Ârbindelsen`, `-¦ s`, `+ó  x201a` вместо знака евро). Мы их не исправляем. Токены вида `company 's` остаются как есть: тексты уже разделены пробелами.
 
-## День 3. Baseline (`src/finnews/baseline.py`)
+### День 3. Baseline (`src/finnews/baseline.py`)
 
 Запуск: `python -m finnews.baseline`. Тесты: `pytest`. Настройки (`test_size`, `random_state`, `max_iter`, пути `metrics_path` и `model_path`) лежат в `configs/config.json`.
 
@@ -50,9 +118,9 @@ Financial PhraseBank, файл `Sentences_50Agree.txt` (формат `текст
 
 Проверка утечки (`experiments/leak_demo.py`): если учить TF-IDF на всех данных, в словарь попадают 1118 слов из test (8942 → 10060), но метрики почти не меняются (accuracy 0.768, F1 0.683). Всё равно учим только на train.
 
-Теория с графиками: `theory_*.py` (запуск из корня проекта), картинки в `reports/theory/`.
+Теория с графиками: `theory/theory_*.py` (запуск из корня проекта: `python theory/theory_cv.py`), картинки в `reports/theory/`.
 
-## День 4. Улучшение baseline (`src/finnews/improve.py`)
+### День 4. Улучшение baseline (`src/finnews/improve.py`)
 
 Запуск: `python -m finnews.improve`. Варианты лежат в `configs/config.json`, блок `experiments`; результат пишется в `reports/improve_metrics.json`.
 
@@ -71,11 +139,11 @@ Financial PhraseBank, файл `Sentences_50Agree.txt` (формат `текст
 
 Выбор: LinearSVC C=1 (самый высокий CV F1 0.709 и самый быстрый). Между вариантами с `C` 10+ и LinearSVC разница внутри разброса, поэтому выбор по простоте и скорости, а не по «победе» в цифрах.
 
-Теория с графиками: `theory_ngrams.py`, `theory_c.py`, `theory_cv.py`, картинки в `reports/theory/`. Замечание: `theory_c.py` строит график по test только для иллюстрации; выбор `C` делался по CV.
+Теория с графиками: `theory/theory_ngrams.py`, `theory/theory_c.py`, `theory/theory_cv.py`, картинки в `reports/theory/`. Замечание: `theory/theory_c.py` строит график по test только для иллюстрации; выбор `C` делался по CV.
 
 Правило сравнения: улучшением считаем разницу больше разброса CV (около ±0.02); иначе берём более простой вариант. Одна цифра на test (968 строк) случайна и не доказательство.
 
-## День 5. Анализ ошибок (`src/finnews/errors.py`)
+### День 5. Анализ ошибок (`src/finnews/errors.py`)
 
 Запуск: `python -m finnews.errors` (модель LinearSVC C=1, ключ `best_experiment` в конфиге). Результат: `reports/errors.csv` (все ошибки с уверенностью модели `margin`), `reports/confusion_matrix.png`, счётчики и примеры в логе.
 
@@ -99,9 +167,9 @@ Financial PhraseBank, файл `Sentences_50Agree.txt` (формат `текст
 
 Что улучшать дальше: модель, которая понимает контекст (трансформеры, ДЗ 5); проверить разметку самых уверенных ошибок; при необходимости веса классов (`class_weight`) против перекоса к neutral.
 
-Теория с графиком: `theory_errors.py`, картинка `reports/theory/errors.png`.
+Теория с графиком: `theory/theory_errors.py`, картинка `reports/theory/errors.png`.
 
-## День 6. Предсказание на новых данных (`src/finnews/predict.py`)
+### День 6. Предсказание на новых данных (`src/finnews/predict.py`)
 
 Обучение и сохранение: `python -m finnews.predict` (без аргументов). Обучается лучший вариант (`best_experiment`, LinearSVC C=1) на train, весь `Pipeline` (словарь TF-IDF + классификатор) сохраняется одним файлом `models/final.joblib` (путь `final_model_path` в конфиге). Метрики на test те же: accuracy 0.768, macro F1 0.709.
 
@@ -125,4 +193,4 @@ Financial PhraseBank, файл `Sentences_50Agree.txt` (формат `текст
 
 Ограничение: модель обучена только на train (80%), test остался честным. Для боевого сервиса можно переобучить на всех данных после выбора настроек.
 
-Теория с графиком: `theory_save.py`, картинка `reports/theory/save.png`.
+Теория с графиком: `theory/theory_save.py`, картинка `reports/theory/save.png`.
