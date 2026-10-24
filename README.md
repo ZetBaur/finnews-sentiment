@@ -100,3 +100,29 @@ Financial PhraseBank, файл `Sentences_50Agree.txt` (формат `текст
 Что улучшать дальше: модель, которая понимает контекст (трансформеры, ДЗ 5); проверить разметку самых уверенных ошибок; при необходимости веса классов (`class_weight`) против перекоса к neutral.
 
 Теория с графиком: `theory_errors.py`, картинка `reports/theory/errors.png`.
+
+## День 6. Предсказание на новых данных (`src/finnews/predict.py`)
+
+Обучение и сохранение: `python -m finnews.predict` (без аргументов). Обучается лучший вариант (`best_experiment`, LinearSVC C=1) на train, весь `Pipeline` (словарь TF-IDF + классификатор) сохраняется одним файлом `models/final.joblib` (путь `final_model_path` в конфиге). Метрики на test те же: accuracy 0.768, macro F1 0.709.
+
+Предсказание без переобучения:
+
+- из командной строки: `python -m finnews.predict "Operating profit rose to EUR 20 million" "Sales decreased by 15%"`;
+- из кода: `from finnews.predict import predict`.
+
+Формат:
+
+- **Вход:** список строк `list[str]`. Каждая строка не короче `min_text_length` (3 символа) после очистки, иначе `ValueError`.
+- **Выход:** список словарей в том же порядке: `{"text": "<исходный текст>", "label": "positive" | "neutral" | "negative"}`.
+
+Каждый текст сначала проходит через тот же `clean_text`, что при обучении. Сохраняется и загружается именно `Pipeline`: словарь и классификатор всегда идут парой, иначе номера столбцов не совпадут.
+
+Примеры (модель загружена, без обучения): «Operating profit rose to EUR 20 million» → positive; «The company reported a net loss for the quarter» → negative; «The meeting will be held on Monday in Helsinki» → neutral.
+
+Проверка «без очистки» (`experiments/skip_clean.py`, 968 предложений test с добавленным `&amp;` и ссылкой): с `clean_text` accuracy 0.768 / F1 0.709 (как на чистых), без `clean_text` 0.753 / 0.688. Модель не ломается, а тихо ухудшается.
+
+Правило: изменили очистку текста — переобучите модель.
+
+Ограничение: модель обучена только на train (80%), test остался честным. Для боевого сервиса можно переобучить на всех данных после выбора настроек.
+
+Теория с графиком: `theory_save.py`, картинка `reports/theory/save.png`.
