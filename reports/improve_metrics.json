@@ -1,0 +1,92 @@
+{
+  "baseline": {
+    "params": {
+      "model": "logreg",
+      "C": 1,
+      "ngram_range": [
+        1,
+        1
+      ]
+    },
+    "cv_macro_f1_mean": 0.6516189146835474,
+    "cv_macro_f1_std": 0.016485265541774353,
+    "test_accuracy": 0.7696280991735537,
+    "test_macro_f1": 0.6961735384874604,
+    "n_features": 8942
+  },
+  "ngrams_1_2": {
+    "params": {
+      "model": "logreg",
+      "C": 1,
+      "ngram_range": [
+        1,
+        2
+      ]
+    },
+    "cv_macro_f1_mean": 0.6252985469961354,
+    "cv_macro_f1_std": 0.023830304435415253,
+    "test_accuracy": 0.75,
+    "test_macro_f1": 0.6518396455293184,
+    "n_features": 49700
+  },
+  "logreg_C10": {
+    "params": {
+      "model": "logreg",
+      "C": 10,
+      "ngram_range": [
+        1,
+        1
+      ]
+    },
+    "cv_macro_f1_mean": 0.7033447412483478,
+    "cv_macro_f1_std": 0.014793206239185347,
+    "test_accuracy": 0.7665289256198347,
+    "test_macro_f1": 0.7075075341089382,
+    "n_features": 8942
+  },
+  "logreg_C100": {
+    "params": {
+      "model": "logreg",
+      "C": 100,
+      "ngram_range": [
+        1,
+        1
+      ]
+    },
+    "cv_macro_f1_mean": 0.6976918749576393,
+    "cv_macro_f1_std": 0.017428206234928943,
+    "test_accuracy": 0.7592975206611571,
+    "test_macro_f1": 0.7047801369649299,
+    "n_features": 8942
+  },
+  "svc_C0.5": {
+    "params": {
+      "model": "linearsvc",
+      "C": 0.5,
+      "ngram_range": [
+        1,
+        1
+      ]
+    },
+    "cv_macro_f1_mean": 0.707164985862365,
+    "cv_macro_f1_std": 0.011992207003166068,
+    "test_accuracy": 0.7747933884297521,
+    "test_macro_f1": 0.7145320321727721,
+    "n_features": 8942
+  },
+  "svc_C1": {
+    "params": {
+      "model": "linearsvc",
+      "C": 1,
+      "ngram_range": [
+        1,
+        1
+      ]
+    },
+    "cv_macro_f1_mean": 0.7093356443923332,
+    "cv_macro_f1_std": 0.01678457586555764,
+    "test_accuracy": 0.7675619834710744,
+    "test_macro_f1": 0.7092885063690754,
+    "n_features": 8942
+  }
+}
