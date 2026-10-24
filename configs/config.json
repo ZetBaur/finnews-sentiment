@@ -13,6 +13,7 @@
   "max_iter": 1000,
   "improve_metrics_path": "reports/improve_metrics.json",
   "cv_folds": 5,
+  "final_model_path": "models/final.joblib",
   "best_experiment": "svc_C1",
   "errors_path": "reports/errors.csv",
   "confusion_path": "reports/confusion_matrix.png",
