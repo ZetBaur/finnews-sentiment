@@ -13,6 +13,10 @@
   "max_iter": 1000,
   "improve_metrics_path": "reports/improve_metrics.json",
   "cv_folds": 5,
+  "best_experiment": "svc_C1",
+  "errors_path": "reports/errors.csv",
+  "confusion_path": "reports/confusion_matrix.png",
+  "examples_per_type": 5,
   "experiments": {
     "baseline": {"model": "logreg", "C": 1, "ngram_range": [1, 1]},
     "ngrams_1_2": {"model": "logreg", "C": 1, "ngram_range": [1, 2]},
